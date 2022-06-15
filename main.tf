@@ -8,13 +8,30 @@ terraform {
 	 	source ="aliyun/alicloud"
 	 	version ="1.99.0"
 	 }
+	 docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 2.13.0"
+   }
 	}
+}
+provider "ansible" {
+	
 }
 provider "alicloud" {
 	
 }
-provider "ansible" {
-	
+provider "docker" {}
+resource "docker_image" "nginx" {
+  name         = "nginx:latest"
+  keep_locally = false
+}
+resource "docker_container" "nginx" {
+  image = docker_image.nginx.latest
+  name  = "tutorial"
+  ports {
+ internal = 80
+    external = 8000
+ }
 }
 resource "ansible_host" "salt-proxy" {
   count = 1
