@@ -1,19 +1,67 @@
----
-- name: install nginx
-  yum: name={{ item }} state=present
-  with_items:
-  - epel-release
-  - nginx
-
-- name: copy nginx configure
-  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
-  notify: reload nginx
-
-- name: nginx test page
-  copy: src=index.html dest=/usr/share/nginx/html/index.xml
-
-- name: remove httpd soft 
-  yum: name=httpd state=absent
-
-- name: start nginx service
-  service: name=nginx state=started enabled=yes
+#一、安装软件包
+- hosts: node01
+  remote_user: root
+  tasks:
+  - name: install epel
+    yum: name=epel-release state=latest
+  - name: install nginx
+    yum: name=nginx state=latest
+- hosts: node02
+  remote_user: root
+  tasks:
+  - name: install epel
+    yum: name=epel-release state=latest
+  - name: install php mysql
+    yum: name={{ item }} state=latest
+    with_items:
+    - php-fpm
+    - php-mysql
+    - php-mbstring
+    - php-mcrypt
+    - mariadb-server
+#配置服务，并启动服务
+- hosts: node01
+  remote_user: root
+  tasks:
+  - name: mkdir nginx root dir
+    shell: mkdir -pv /data/nginx/html
+  - name: copy nginx config
+    copy: src=/mnt/d/ansible/lnmp/phpMyAdmin-4.0.10.20-all-languages.tar.gz dest=/data/nginx/html/
+  - name: tar zxvf phpMyAdmin-4.0.10.20-all-languages.tar.gz
+    shell: tar zxvf /data/nginx/html/phpMyAdmin-4.0.10.20-all-languages.tar.gz -C /data/nginx/html/
+  - name: copy  pma.sh
+    copy: src=/mnt/d/ansible/lnmp/node01-pma.sh  dest=/data/nginx/html/
+  - name: bash pma.sh
+    shell: bash /data/nginx/html/node01-pma.sh
+  - name: copy config inc php
+    copy: src=/mnt/d/ansible/lnmp/config.inc.php dest=/data/nginx/html/pma/
+  - name: copy nginx config ilinux.conf
+    copy: src=/mnt/d/ansible/lnmp/ilinux.conf dest=/etc/nginx/conf.d
+  - name: start nginx service
+    service: name=nginx state=restarted
+- hosts: node02
+  remote_user: root
+  tasks:
+  - name: mkdir /var/lib/php/session
+    shell: mkdir -pv /var/lib/php/session/ && chown apache:apache /var/lib/php/session/
+  - name: copy www.conf
+    copy: src=/mnt/d/ansible/lnmp/www.conf dest=/etc/php-fpm.d/
+  - name: start php-fpm
+    service: name=php-fpm state=restarted
+  - name: copy nginx config
+    copy: src=/mnt/d/ansible/lnmp/phpMyAdmin-4.0.10.20-all-languages.tar.gz dest=/data/apps/
+  - name: tar zxvf phpMyAdmin-4.0.10.20-all-languages.tar.gz
+    shell: tar zxvf /data/nginx/html/phpMyAdmin-4.0.10.20-all-languages.tar.gz -C /data/apps/
+  - name: copy  pma.sh
+    copy: src=/mnt/d/ansible/lnmp/node02-pma.sh  dest=/data/apps
+  - name: bash pma.sh
+    shell: bash /data/apps/node02-pma.sh
+  - name: copy config.inc.php
+    copy: src=/mnt/d/ansible/lnmp/config.inc.php dest=/data/apps/pma/
+  - name: copy config index.php
+    copy: src=/mnt/d/ansible/lnmp/index.php dest=/data/apps/
+    tags: copyindexphp
+  - name: copy mariadb config
+    copy: src=/mnt/d/ansible/lnmp/server.cnf dest=/etc/my.cnf.d/
+  - name: start mysql
+    service: name=mariadb state=restarted
