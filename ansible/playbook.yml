@@ -1,0 +1,19 @@
+---
+- name: install nginx
+  yum: name={{ item }} state=present
+  with_items:
+  - epel-release
+  - nginx
+
+- name: copy nginx configure
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  notify: reload nginx
+
+- name: nginx test page
+  copy: src=index.html dest=/usr/share/nginx/html/index.xml
+
+- name: remove httpd soft 
+  yum: name=httpd state=absent
+
+- name: start nginx service
+  service: name=nginx state=started enabled=yes
