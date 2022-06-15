@@ -17,7 +17,7 @@ provider "alicloud" {
         secret_key = "v7CBTYeowvR9ztFZUvktWUp1yK9ZK1"
         region = "cn-beijing"
 }
-}
+
 resource "ansible_host" "salt-proxy" {
   count = 1
 
